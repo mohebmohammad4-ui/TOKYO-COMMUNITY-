@@ -1,6 +1,4 @@
-import DBD from 'discord-dashboard';
-import SoftUI from 'dbd-soft-ui';
-import { logger } from '../utils/logger.js';
+Import { logger } from '../utils/logger.js';
 
 
 export const botConfig = {
@@ -33,7 +31,7 @@ export const botConfig = {
       },
     ],
   },
-
+  
   // =========================
   // COMMAND BEHAVIOR
   // =========================
@@ -545,41 +543,5 @@ export function getRandomColor() {
 }
 
 export default botConfig;
-
-export function startDashboard(client) {
-  const Dashboard = new DBD.Dashboard({
-    port: process.env.PORT || 8080,
-    client: {
-      id: process.env.CLIENT_ID,
-      secret: process.env.CLIENT_SECRET
-    },
-    domain: process.env.DOMAIN,
-    redirectUri: `${process.env.DOMAIN}/callback`,
-    bot: client,
-    theme: SoftUI({
-      color: botConfig.embeds.colors.primary, // سيأخذ اللون الأزرق من إعداداتك
-      theme: "dark",
-      title: "Titan Bot Panel"
-    }),
-    settings: [
-      {
-        categoryId: 'main',
-        categoryName: "General Settings",
-        categoryOptionsList: [
-          {
-            optionId: 'prefix',
-            optionName: "Prefix",
-            optionType: DBD.formTypes.input("!", 1, 3),
-            getGetter: async () => "!", 
-            getSetter: async ({ value }) => { console.log(value); }
-          }
-        ]
-      }
-    ]
-  });
-
-  Dashboard.init();
-}
-
 
 
