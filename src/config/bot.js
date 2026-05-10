@@ -31,6 +31,10 @@ export const botConfig = {
       },
     ],
   },
+const DBD = require('discord-dashboard');
+const SoftUI = require('dbd-soft-ui');
+
+// تأكد أن متغير البوت عندك اسمه client، إذا كان اسمه bot قم بتغييره في الأسفل
 
   // =========================
   // COMMAND BEHAVIOR
