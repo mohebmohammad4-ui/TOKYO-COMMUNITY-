@@ -80,11 +80,13 @@ class TitanBot extends Client {
       await this.loadHandlers();
       startupLog('Handlers loaded');
       
-      startupLog('Logging into Discord...');
-      await this.login(this.config.bot.token);
-      this.once('ready', async () => {
+   startupLog('Logging into Discord...');
 
-    const channel = this.channels.cache.get('https://discordapp.com/channels/1493320567821045996/1493323975068090561');
+this.once('ready', async () => {
+
+    console.log('BOT READY');
+
+    const channel = this.channels.cache.get('https://discordapp.com/channels/1493320567821045996/1493323975068090561 ');
 
     if (!channel) return console.log('❌ Channel not found');
 
@@ -109,63 +111,17 @@ class TitanBot extends Client {
         timestamp: new Date()
     };
 
-    const row1 = {
-        type: 1,
-        components: [
-            {
-                type: 2,
-                label: 'القوانين',
-                style: 2,
-                custom_id: 'rules',
-                emoji: {
-                    name: '📜'
-                }
-            },
-            {
-                type: 2,
-                label: 'من نحن',
-                style: 2,
-                custom_id: 'about',
-                emoji: {
-                    name: '🌸'
-                }
-            }
-        ]
-    };
-
-    const row2 = {
-        type: 1,
-        components: [
-            {
-                type: 2,
-                label: 'مميزات البوست',
-                style: 4,
-                custom_id: 'boost',
-                emoji: {
-                    name: '💎'
-                }
-            },
-            {
-                type: 2,
-                label: 'الرتب الخاصة',
-                style: 1,
-                custom_id: 'roles',
-                emoji: {
-                    name: '🎴'
-                }
-            }
-        ]
-    };
-
     await channel.send({
-        embeds: [embed],
-        components: [row1, row2]
+        embeds: [embed]
     });
 
-    console.log('✅ Tokyo Embed Sent');
+    console.log('✅ Embed Sent');
 
 });
-      startupLog('Discord login successful');
+
+await this.login(this.config.bot.token);
+
+startupLog('Discord login successful');
       
       startupLog('Registering slash commands...');
       await this.registerCommands();
