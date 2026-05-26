@@ -82,6 +82,89 @@ class TitanBot extends Client {
       
       startupLog('Logging into Discord...');
       await this.login(this.config.bot.token);
+      this.once('ready', async () => {
+
+    const channel = this.channels.cache.get('https://discordapp.com/channels/1493320567821045996/1493323975068090561');
+
+    if (!channel) return console.log('❌ Channel not found');
+
+    const embed = {
+        color: 0x8B0000,
+
+        title: '『 TOKYO COMMUNITY 』',
+
+        description:
+`# اهلاً بك في Tokyo Community 🌸
+
+اضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
+
+        image: {
+            url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
+        },
+
+        footer: {
+            text: 'Tokyo Community'
+        },
+
+        timestamp: new Date()
+    };
+
+    const row1 = {
+        type: 1,
+        components: [
+            {
+                type: 2,
+                label: 'القوانين',
+                style: 2,
+                custom_id: 'rules',
+                emoji: {
+                    name: '📜'
+                }
+            },
+            {
+                type: 2,
+                label: 'من نحن',
+                style: 2,
+                custom_id: 'about',
+                emoji: {
+                    name: '🌸'
+                }
+            }
+        ]
+    };
+
+    const row2 = {
+        type: 1,
+        components: [
+            {
+                type: 2,
+                label: 'مميزات البوست',
+                style: 4,
+                custom_id: 'boost',
+                emoji: {
+                    name: '💎'
+                }
+            },
+            {
+                type: 2,
+                label: 'الرتب الخاصة',
+                style: 1,
+                custom_id: 'roles',
+                emoji: {
+                    name: '🎴'
+                }
+            }
+        ]
+    };
+
+    await channel.send({
+        embeds: [embed],
+        components: [row1, row2]
+    });
+
+    console.log('✅ Tokyo Embed Sent');
+
+});
       startupLog('Discord login successful');
       
       startupLog('Registering slash commands...');
@@ -379,7 +462,83 @@ try {
   logger.error('Fatal error during bot startup:', error);
   process.exit(1);
 }
+client.on('interactionCreate', async interaction => {
 
+    if (!interaction.isButton()) return;
+
+    // القوانين
+    if (interaction.customId === 'rules') {
+
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '📜 قوانين السيرفر',
+                description:
+`# قوانينTOKYO COMUNNITY
+* ممنوع السب الا في حالة المزاح
+* يُمنع منعا باتاً التحرش بجميع أنواعه
+* ممنوع ذكر الشواذ
+* ممنوع التحدث في الدين
+* ممنوع الترويج بكل أشكاله
+* ممنوع نشر/ارسال اي شيء إباحي/جنسي
+* ممنوع العنصرية إلا في حالة المزاح 
+* ممنوع الاهانة 
+* ممنوع السبام
+* ممنوع إزعاج اي شخص بالمنشن أو غيره`
+            }]
+        });
+
+    }
+
+    // من نحن
+    if (interaction.customId === 'about') {
+
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '🌸 من نحن',
+                description:
+`Tokyo Community مجتمع للأنمي والجيمينج والتفاعل ✨`
+            }]
+        });
+
+    }
+
+    // البوست
+    if (interaction.customId === 'boost') {
+
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '💎 مميزات البوست',
+                description:
+`• رول خاص
+• لون مميز
+• صلاحيات إضافية`
+            }]
+        });
+
+    }
+
+    // الرتب
+    if (interaction.customId === 'roles') {
+
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '🎴 الرتب الخاصة',
+                description:
+`يمكنك الحصول على رتب مميزة داخل السيرفر`
+            }]
+        });
+
+    }
+
+});
 export default TitanBot;
 
 
