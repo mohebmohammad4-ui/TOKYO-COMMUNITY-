@@ -75,40 +75,79 @@ class TitanBot extends Client {
       
       startupLog('Logging into Discord...');
 
-      // حدث الجاهزية وإرسال الـ Embed (تم تصليح الـ ID والمسافة الزائدة)
+      // حدث تشغيل البوت وإرسال الـ Embed مع الأزرار الجديدة
       this.once('ready', async () => {
         console.log('BOT READY');
 
-        const channel = this.channels.cache.get('1493323975068090561'); // تم حذف المسافة الزائدة هنا
+        const channel = this.channels.cache.get('1493323975068090561');
 
         if (!channel) return console.log('❌ Channel not found');
 
-        const embed = {
-            color: 0x8B0000,
-            title: '『 TOKYO COMMUNITY 』',
-            description: `# اهلاً بك في Tokyo Community 🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
-            image: {
-                url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
-            },
-            footer: {
-                text: 'Tokyo Community'
-            },
-            timestamp: new Date()
-        };
-
         try {
-          await channel.send({ embeds: [embed] });
-          console.log('✅ Embed Sent');
+          await channel.send({
+            embeds: [
+                {
+                    color: 0x8B0000,
+                    title: '『 TOKYO COMMUNITY 』',
+                    description: `# اهلاً بك في Tokyo Community 🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
+                    image: {
+                        url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
+                    },
+                    footer: {
+                        text: 'Tokyo Community'
+                    },
+                    timestamp: new Date()
+                }
+            ],
+            components: [
+                {
+                    type: 1,
+                    components: [
+                        {
+                            type: 2,
+                            label: 'القوانين',
+                            style: 2,
+                            custom_id: 'rules',
+                            emoji: { name: '📜' }
+                        },
+                        {
+                            type: 2,
+                            label: 'من نحن',
+                            style: 2,
+                            custom_id: 'about',
+                            emoji: { name: '🌸' }
+                        }
+                    ]
+                },
+                {
+                    type: 1,
+                    components: [
+                        {
+                            type: 2,
+                            label: 'البوست',
+                            style: 4,
+                            custom_id: 'boost',
+                            emoji: { name: '💎' }
+                        },
+                        {
+                            type: 2,
+                            label: 'الرتب',
+                            style: 1,
+                            custom_id: 'roles',
+                            emoji: { name: '🎴' }
+                        }
+                    ]
+                }
+            ]
+          });
           
-          // رسالة التيست
-          await channel.send('TEST MESSAGE');
-          console.log('✅ TEST MESSAGE SENT');
+          console.log('✅ Embed and Buttons Sent Successfully!');
         } catch (err) {
-          console.error('❌ Error sending message to channel:', err);
+          console.error('❌ Error sending Embed with Buttons:', err);
         }
       });
 
-      // تسجيل الدخول (مرة واحدة فقط)
+      // تسجيل الدخول
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
 
@@ -260,35 +299,23 @@ class TitanBot extends Client {
   }
 
   async updateAllCounters() {
-    if (!this.db) {
-      logger.warn('Database not available for counter updates');
-      return;
-    }
-    
+    if (!this.db) return;
     for (const [guildId, guild] of this.guilds.cache) {
       try {
         const counters = await getServerCounters(this, guildId);
         const validCounters = [];
-        const orphanedCounters = [];
-        
         for (const counter of counters) {
           if (counter && counter.type && counter.channelId && counter.enabled !== false) {
             const channel = guild.channels.cache.get(counter.channelId);
             if (channel) {
               validCounters.push(counter);
               await updateCounter(this, guild, counter);
-            } else {
-              orphanedCounters.push(counter);
-              logger.info(`Removing orphaned counter ${counter.id} (type: ${counter.type}, deleted channel: ${counter.channelId}) from guild ${guildId}`);
             }
           }
         }
-        
-        if (orphanedCounters.length > 0) {
-          await saveServerCounters(this, guildId, validCounters);
-        }
+        await saveServerCounters(this, guildId, validCounters);
       } catch (error) {
-        logger.error(`Error updating counters for guild ${guildId}:`, error);
+        logger.error(`Error updating counters:`, error);
       }
     }
   }
@@ -302,21 +329,13 @@ class TitanBot extends Client {
     for (const handler of handlers) {
       try {
         const module = await import(`./handlers/${handler.path}.js`);
-        const loaderFn = handler.type.startsWith('named:') 
-          ? module[handler.type.split(':')[1]] 
-          : module.default;
-        
+        const loaderFn = module.default;
         if (typeof loaderFn === 'function') {
           await loaderFn(this);
           logger.info(`✅ Loaded ${handler.path}`);
-        } else {
-          throw new Error(`Invalid loader export from ${handler.path}`);
         }
       } catch (error) {
-        if (handler.required) {
-          logger.error(`❌ Failed to load required handler ${handler.path}:`, error.message);
-          throw error;
-        }
+        if (handler.required) throw error;
       }
     }
   }
@@ -330,15 +349,12 @@ class TitanBot extends Client {
   }
 
   async shutdown(reason = 'UNKNOWN') {
-    shutdownLog(`Bot is shutting down (${reason})...`);
     try {
       cron.getTasks().forEach(task => task.stop());
       if (this.db && this.db.db && this.db.db.pool) {
         await this.db.db.pool.end();
       }
-      if (this.isReady()) {
-        this.destroy();
-      }
+      if (this.isReady()) this.destroy();
       process.exit(0);
     } catch (error) {
       process.exit(1);
@@ -346,27 +362,19 @@ class TitanBot extends Client {
   }
 }
 
-// تشغيل البوت وإعداد الأحداث بشكل صحيح
+// تشغيل البوت وتفعيل استقبال ضغطات الأزرار
 const bot = new TitanBot();
 
 const setupShutdown = () => {
   process.on('SIGTERM', () => bot.shutdown('SIGTERM'));
   process.on('SIGINT', () => bot.shutdown('SIGINT'));
-  
-  process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', error);
-    bot.shutdown('UNCAUGHT_EXCEPTION');
-  });
-  
-  process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    bot.shutdown('UNHANDLED_REJECTION');
-  });
+  process.on('uncaughtException', (error) => bot.shutdown('UNCAUGHT_EXCEPTION'));
+  process.on('unhandledRejection', () => bot.shutdown('UNHANDLED_REJECTION'));
 };
 
 setupShutdown();
 
-// تفعيل حدث الأزرار بالمتغير الصحيح (bot)
+// استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل مخفية (ephemeral)
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
@@ -376,7 +384,7 @@ bot.on('interactionCreate', async interaction => {
             embeds: [{
                 color: 0x8B0000,
                 title: '📜 قوانين السيرفر',
-                description: `# قوانين TOKYO COMUNNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
+                description: `# قوانين TOKYO COMMUNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
             }]
         });
     }
