@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
@@ -17,18 +17,12 @@ class TitanBot extends Client {
   constructor() {
     super({
       intents: [
-        
         GatewayIntentBits.Guilds,                        
         GatewayIntentBits.GuildMembers,                 
-        
-        
         GatewayIntentBits.GuildMessages,                
         GatewayIntentBits.GuildMessageReactions,        
         GatewayIntentBits.MessageContent,               
-        
         GatewayIntentBits.GuildVoiceStates,             
-        
-        
         GatewayIntentBits.GuildBans,                    
       ],
     });
@@ -53,7 +47,6 @@ class TitanBot extends Client {
       const dbInstance = await initializeDatabase();
       this.db = dbInstance.db;
       
-      // Check database status and report
       const dbStatus = this.db.getStatus();
       if (dbStatus.isDegraded) {
         logger.warn('');
@@ -80,59 +73,45 @@ class TitanBot extends Client {
       await this.loadHandlers();
       startupLog('Handlers loaded');
       
-   startupLog('Logging into Discord...');
+      startupLog('Logging into Discord...');
 
-this.once('ready', async () => {
+      // حدث الجاهزية وإرسال الـ Embed (تم تصليح الـ ID والمسافة الزائدة)
+      this.once('ready', async () => {
+        console.log('BOT READY');
 
-    console.log('BOT READY');
+        const channel = this.channels.cache.get('1493323975068090561'); // تم حذف المسافة الزائدة هنا
 
-    const channel = this.channels.cache.get('1493323975068090561 ');
+        if (!channel) return console.log('❌ Channel not found');
 
-    if (!channel) return console.log('❌ Channel not found');
+        const embed = {
+            color: 0x8B0000,
+            title: '『 TOKYO COMMUNITY 』',
+            description: `# اهلاً بك في Tokyo Community 🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
+            image: {
+                url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
+            },
+            footer: {
+                text: 'Tokyo Community'
+            },
+            timestamp: new Date()
+        };
 
-    const embed = {
-        color: 0x8B0000,
+        try {
+          await channel.send({ embeds: [embed] });
+          console.log('✅ Embed Sent');
+          
+          // رسالة التيست
+          await channel.send('TEST MESSAGE');
+          console.log('✅ TEST MESSAGE SENT');
+        } catch (err) {
+          console.error('❌ Error sending message to channel:', err);
+        }
+      });
 
-        title: '『 TOKYO COMMUNITY 』',
-
-        description:
-`# اهلاً بك في Tokyo Community 🌸
-
-اضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
-
-        image: {
-            url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
-        },
-
-        footer: {
-            text: 'Tokyo Community'
-        },
-
-        timestamp: new Date()
-    };
-
-    await channel.send({
-        embeds: [embed]
-    });
-
-    console.log('✅ Embed Sent');
-
-});
-
-await this.login(this.config.bot.token);
-
-startupLog('Discord login successful');
+      // تسجيل الدخول (مرة واحدة فقط)
       await this.login(this.config.bot.token);
-startupLog('Discord login successful');
+      startupLog('Discord login successful');
 
-const channel = this.channels.cache.get('1493323975068090561');
-
-if (channel) {
-    await channel.send('TEST MESSAGE');
-    console.log('✅ SENT');
-} else {
-    console.log('❌ Channel not found');
-}
       startupLog('Registering slash commands...');
       await this.registerCommands();
       startupLog('Slash commands registration complete');
@@ -245,8 +224,6 @@ if (channel) {
         hasStartedListening = true;
         this.webServer = server;
         startupLog(`✅ Web Server running on ${host}:${port}`);
-        startupLog(`Health endpoint: http://localhost:${port}/health`);
-        startupLog(`Ready endpoint: http://localhost:${port}/ready`);
       });
 
       server.on('error', (error) => {
@@ -307,10 +284,8 @@ if (channel) {
           }
         }
         
-        // Save cleaned counters if any were orphaned
         if (orphanedCounters.length > 0) {
           await saveServerCounters(this, guildId, validCounters);
-          logger.info(`Cleaned up ${orphanedCounters.length} orphaned counter(s) from guild ${guildId} during scheduled update`);
         }
       } catch (error) {
         logger.error(`Error updating counters for guild ${guildId}:`, error);
@@ -341,8 +316,6 @@ if (channel) {
         if (handler.required) {
           logger.error(`❌ Failed to load required handler ${handler.path}:`, error.message);
           throw error;
-        } else if (error.code !== 'MODULE_NOT_FOUND') {
-          logger.warn(`⚠️  Failed to load optional handler ${handler.path}:`, error.message);
         }
       }
     }
@@ -358,154 +331,90 @@ if (channel) {
 
   async shutdown(reason = 'UNKNOWN') {
     shutdownLog(`Bot is shutting down (${reason})...`);
-    logger.info(`\n${'='.repeat(60)}`);
-    logger.info(`🛑 Graceful Shutdown Initiated (${reason})`);
-    logger.info(`${'='.repeat(60)}`);
-
     try {
-      
-      logger.info('Stopping cron jobs...');
       cron.getTasks().forEach(task => task.stop());
-      logger.info('✅ Cron jobs stopped');
-
-      // Close database connection
-      if (this.db && this.db.db) {
-        logger.info('Closing database connection...');
-        try {
-          if (this.db.db.pool) {
-            await this.db.db.pool.end();
-            logger.info('✅ Database connection closed');
-          }
-        } catch (error) {
-          logger.warn('Error closing database pool:', error.message);
-        }
+      if (this.db && this.db.db && this.db.db.pool) {
+        await this.db.db.pool.end();
       }
-
-      
-      logger.info('Destroying Discord client...');
       if (this.isReady()) {
-        try {
-          this.destroy();
-          logger.info('✅ Discord client destroyed');
-        } catch (error) {
-          
-          
-          logger.warn('Discord client destroy warning (non-critical):', error.message);
-        }
+        this.destroy();
       }
-
-      logger.info('✅ Graceful shutdown complete');
-  shutdownLog('Bot stopped successfully.');
       process.exit(0);
     } catch (error) {
-      logger.error('Error during graceful shutdown:', error);
       process.exit(1);
     }
   }
 }
 
-try {
-  const bot = new TitanBot();
-  
-  const setupShutdown = () => {
-    process.on('SIGTERM', () => bot.shutdown('SIGTERM'));
-    process.on('SIGINT', () => bot.shutdown('SIGINT'));
-    
-    process.on('uncaughtException', (error) => {
-      logger.error('Uncaught Exception:', error);
-      bot.shutdown('UNCAUGHT_EXCEPTION');
-    });
-    
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      bot.shutdown('UNHANDLED_REJECTION');
-    });
-  };
-  
-  setupShutdown();
-  bot.start();
-} catch (error) {
-  logger.error('Fatal error during bot startup:', error);
-  process.exit(1);
-}
-TitanBot.on('interactionCreate', async interaction => {
+// تشغيل البوت وإعداد الأحداث بشكل صحيح
+const bot = new TitanBot();
 
+const setupShutdown = () => {
+  process.on('SIGTERM', () => bot.shutdown('SIGTERM'));
+  process.on('SIGINT', () => bot.shutdown('SIGINT'));
+  
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+    bot.shutdown('UNCAUGHT_EXCEPTION');
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    bot.shutdown('UNHANDLED_REJECTION');
+  });
+};
+
+setupShutdown();
+
+// تفعيل حدث الأزرار بالمتغير الصحيح (bot)
+bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
-    // القوانين
     if (interaction.customId === 'rules') {
-
         await interaction.reply({
             ephemeral: true,
             embeds: [{
                 color: 0x8B0000,
                 title: '📜 قوانين السيرفر',
-                description:
-`# قوانينTOKYO COMUNNITY
-* ممنوع السب الا في حالة المزاح
-* يُمنع منعا باتاً التحرش بجميع أنواعه
-* ممنوع ذكر الشواذ
-* ممنوع التحدث في الدين
-* ممنوع الترويج بكل أشكاله
-* ممنوع نشر/ارسال اي شيء إباحي/جنسي
-* ممنوع العنصرية إلا في حالة المزاح 
-* ممنوع الاهانة 
-* ممنوع السبام
-* ممنوع إزعاج اي شخص بالمنشن أو غيره`
+                description: `# قوانين TOKYO COMUNNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
             }]
         });
-
     }
 
-    // من نحن
     if (interaction.customId === 'about') {
-
         await interaction.reply({
             ephemeral: true,
             embeds: [{
                 color: 0x8B0000,
                 title: '🌸 من نحن',
-                description:
-`Tokyo Community مجتمع للأنمي والجيمينج والتفاعل ✨`
+                description: `Tokyo Community مجتمع للأنمي والجيمنج والتفاعل ✨`
             }]
         });
-
     }
 
-    // البوست
     if (interaction.customId === 'boost') {
-
         await interaction.reply({
             ephemeral: true,
             embeds: [{
                 color: 0x8B0000,
                 title: '💎 مميزات البوست',
-                description:
-`• رول خاص
-• لون مميز
-• صلاحيات إضافية`
+                description: `• رول خاص\n• لون مميز\n• صلاحيات إضافية`
             }]
         });
-
     }
 
-    // الرتب
     if (interaction.customId === 'roles') {
-
         await interaction.reply({
             ephemeral: true,
             embeds: [{
                 color: 0x8B0000,
-                title: '🎴 الرتب الخاصة',
-                description:
-`يمكنك الحصول على رتب مميزة داخل السيرفر`
+                title: '🎏 الرتب الخاصة',
+                description: `يمكنك الحصول على رتب مميزة داخل السيرفر`
             }]
         });
-
     }
-
 });
+
+bot.start();
+
 export default TitanBot;
-
-
-
