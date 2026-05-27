@@ -122,7 +122,17 @@ this.once('ready', async () => {
 await this.login(this.config.bot.token);
 
 startupLog('Discord login successful');
-      
+      await this.login(this.config.bot.token);
+startupLog('Discord login successful');
+
+const channel = this.channels.cache.get('1493323975068090561');
+
+if (channel) {
+    await channel.send('TEST MESSAGE');
+    console.log('✅ SENT');
+} else {
+    console.log('❌ Channel not found');
+}
       startupLog('Registering slash commands...');
       await this.registerCommands();
       startupLog('Slash commands registration complete');
