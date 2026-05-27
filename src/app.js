@@ -86,7 +86,7 @@ this.once('ready', async () => {
 
     console.log('BOT READY');
 
-    const channel = this.channels.cache.get('https://discordapp.com/channels/1493320567821045996/1493323975068090561 ');
+    const channel = this.channels.cache.get('1493323975068090561 ');
 
     if (!channel) return console.log('❌ Channel not found');
 
