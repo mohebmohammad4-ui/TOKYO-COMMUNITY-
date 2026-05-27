@@ -428,7 +428,7 @@ try {
   logger.error('Fatal error during bot startup:', error);
   process.exit(1);
 }
-client.on('interactionCreate', async interaction => {
+this.on('interactionCreate', async interaction => {
 
     if (!interaction.isButton()) return;
 
