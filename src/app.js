@@ -103,19 +103,20 @@ class TitanBot extends Client {
                 {
                     type: 1,
                     components: [
-                        {
-                            type: 2,
-                            label: 'القوانين',
-                            style: 2,
-                            custom_id: 'rules',
-                            emoji: { name: '📜' }
-                        },
+                     
                         {
                             type: 2,
                             label: 'من نحن',
                             style: 2,
                             custom_id: 'about',
                             emoji: { name: '🌸' }
+                        },
+                        {
+                            type: 2,
+                            label: 'القوانين',
+                            style: 2,
+                            custom_id: 'rules',
+                            emoji: { name: '📜' }
                         }
                     ]
                 },
