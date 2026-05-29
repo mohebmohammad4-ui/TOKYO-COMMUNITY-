@@ -51,11 +51,11 @@ class TitanBot extends Client {
       if (dbStatus.isDegraded) {
         logger.warn('');
         logger.warn('╔═══════════════════════════════════════════════════════╗');
-        logger.warn('║ ⚠️  DATABASE RUNNING IN DEGRADED MODE                 ║');
+        logger.warn('║ ⚠️  DATABASE RUNNING IN DEGRADED MODE                  ║');
         logger.warn('║                                                       ║');
         logger.warn('║ Connection: In-Memory Storage (PostgreSQL unavailable)║');
-        logger.warn('║ Data Persistence: DISABLED - data lost on restart    ║');
-        logger.warn('║ Action Required: Fix PostgreSQL and restart bot      ║');
+        logger.warn('║ Data Persistence: DISABLED - data lost on restart     ║');
+        logger.warn('║ Action Required: Fix PostgreSQL and restart bot       ║');
         logger.warn('╚═══════════════════════════════════════════════════════╝');
         logger.warn('');
       } else {
@@ -381,48 +381,4 @@ bot.on('interactionCreate', async interaction => {
     if (interaction.customId === 'rules') {
         await interaction.reply({
             ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '📜 قوانين السيرفر',
-                description: `# قوانين TOKYO COMMUNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'about') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '🌸 من نحن',
-                description: `Tokyo Community مجتمع للأنمي والجيمنج والتفاعل ✨`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'boost') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '💎 مميزات البوست',
-                description: `• رول خاص\n• لون مميز\n• صلاحيات إضافية`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'roles') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '🎏 الرتب الخاصة',
-                description: `يمكنك الحصول على رتب مميزة داخل السيرفر`
-            }]
-        });
-    }
-});
-
-bot.start();
-
-export default TitanBot;
+            embeds:
