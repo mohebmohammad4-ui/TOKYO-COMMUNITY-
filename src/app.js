@@ -381,4 +381,85 @@ bot.on('interactionCreate', async interaction => {
     if (interaction.customId === 'rules') {
         await interaction.reply({
             ephemeral: true,
-            embeds:
+            embeds: [{
+                color: 0x8B0000,
+                title: '📜 قوانين السيرفر',
+                description: `# قوانين TOKYO COMMUNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
+            }]
+        });
+    }
+
+    if (interaction.customId === 'about') {
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '🌸 من نحن',
+                description: `Tokyo Community مجتمع للأنمي والجيمنج والتفاعل ✨`
+            }]
+        });
+    }
+
+    if (interaction.customId === 'boost') {
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '💎 مميزات البوست',
+                description: `• رول خاص\n• لون مميز\n• صلاحيات إضافية`
+            }]
+        });
+    }
+
+    if (interaction.customId === 'roles') {
+        await interaction.reply({
+            ephemeral: true,
+            embeds: [{
+                color: 0x8B0000,
+                title: '🎏 الرتب الخاصة',
+                description: `يمكنك الحصول على رتب مميزة داخل السيرفر`
+            }]
+        });
+    }
+});
+
+// الحدث الجديد: فحص الرسائل في رومات الصور المحددة ومنع النصوص والرسائل بدون صور
+bot.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    // الرومات المسموحة للصور فقط
+    const allowedChannels = [
+        '1493324135785562222',
+        '1493324237249970176'
+    ];
+
+    // لو الرسالة ليست في الرومات المحددة
+    if (!allowedChannels.includes(message.channel.id)) return;
+
+    // هل الرسالة تحتوي صورة؟
+    const hasImage = message.attachments.some(attachment =>
+        attachment.contentType?.startsWith('image/')
+    );
+
+    // لو ليست صورة
+    if (!hasImage) {
+        // حذف الرسالة
+        await message.delete().catch(() => {});
+
+        // ارسال DM للفاعل
+        await message.author.send({
+            content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
+        }).catch(() => {});
+
+        return;
+    }
+
+    // ارسال الصورة التلقائية (الفواصل أو الترحيبية) بعد الصورة المرسلة
+    await message.channel.send({
+        files: ['https://cdn.discordapp.com/attachments/1486414234349993985/1510019036602433546/8000_x_700.png?ex=6a1b4a51&is=6a19f8d1&hm=f093309a1286bc5c4f4151895c87a246fefdd3ecf27b85b83151d75c8fd6bd23&']
+    }).catch(() => {});
+});
+
+bot.start();
+
+export default TitanBot;
