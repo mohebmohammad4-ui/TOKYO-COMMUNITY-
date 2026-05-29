@@ -13,23 +13,8 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
-const Guild = require("./model/guildcnofig");
-
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  if (!message.guild) return;
-
-  const data = await Guild.findOne({ guildId: message.guild.id });
-  if (!data) return;
-
-  const reply = data.autoReplies.find(r =>
-    r.trigger.toLowerCase() === message.content.toLowerCase()
-  );
-
-  if (reply) {
-    message.reply(reply.response);
-  }
-});
+// ✅ تم تعديل الاستدعاء هنا من require إلى import ليتوافق مع نظام المشروع
+import Guild from './model/guildconfig.js'; 
 
 class TitanBot extends Client {
   constructor() {
@@ -73,7 +58,7 @@ class TitanBot extends Client {
         logger.warn('║                                                       ║');
         logger.warn('║ Connection: In-Memory Storage (PostgreSQL unavailable)║');
         logger.warn('║ Data Persistence: DISABLED - data lost on restart     ║');
-        logger.warn('║ Action Required: Fix PostgreSQL and restart bot       ║');
+        logger.warn('║ Action Required: Fix PostgreSQL and restart bot        ║');
         logger.warn('╚═══════════════════════════════════════════════════════╝');
         logger.warn('');
       } else {
@@ -93,7 +78,6 @@ class TitanBot extends Client {
       
       startupLog('Logging into Discord...');
 
-      // حدث تشغيل البوت وإرسال الـ Embed مع الأزرار المعدلة بالألوان المتناسقة
       this.once('ready', async () => {
         console.log('BOT READY');
 
@@ -143,14 +127,14 @@ class TitanBot extends Client {
                         {
                             type: 2,
                             label: 'البوست',
-                            style: 2, // تم تغيير اللون ليتناسق مع باقي الأزرار (رمادي)
+                            style: 2,
                             custom_id: 'boost',
                             emoji: { name: '💎' }
                         },
                         {
                             type: 2,
                             label: 'الرتب',
-                            style: 2, // تم تغيير اللون ليتناسق مع باقي الأزرار (رمادي)
+                            style: 2,
                             custom_id: 'roles',
                             emoji: { name: '🎴' }
                         }
@@ -165,7 +149,6 @@ class TitanBot extends Client {
         }
       });
 
-      // تسجيل الدخول
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
 
@@ -392,6 +375,27 @@ const setupShutdown = () => {
 
 setupShutdown();
 
+// ✅ تم تصحيح ونقل حدث الـ Auto Reply إلى مكانه الصحيح بعد تعريف الـ bot
+bot.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!message.guild) return;
+
+  try {
+    const data = await Guild.findOne({ guildId: message.guild.id });
+    if (!data || !data.autoReplies) return;
+
+    const reply = data.autoReplies.find(r =>
+      r.trigger.toLowerCase() === message.content.toLowerCase()
+    );
+
+    if (reply) {
+      await message.reply(reply.response);
+    }
+  } catch (err) {
+    console.error("Error in AutoReply system:", err);
+  }
+});
+
 // استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل المعدلة مخفية (ephemeral)
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
@@ -445,34 +449,25 @@ bot.on('interactionCreate', async interaction => {
 bot.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // الرومات المسموحة للصور فقط
     const allowedChannels = [
         '1493324135785562222',
         '1493324237249970176'
     ];
 
-    // لو الرسالة ليست في الرومات المحددة
     if (!allowedChannels.includes(message.channel.id)) return;
 
-    // هل الرسالة تحتوي صورة؟
     const hasImage = message.attachments.some(attachment =>
         attachment.contentType?.startsWith('image/')
     );
 
-    // لو ليست صورة
     if (!hasImage) {
-        // حذف الرسالة
         await message.delete().catch(() => {});
-
-        // ارسال DM للفاعل
         await message.author.send({
             content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
         }).catch(() => {});
-
         return;
     }
 
-    // ارسال الصورة التلقائية (الفواصل أو الترحيبية) بعد الصورة المرسلة
     await message.channel.send({
         files: ['https://cdn.discordapp.com/attachments/1486414234349993985/1510019036602433546/8000_x_700.png?ex=6a1b4a51&is=6a19f8d1&hm=f093309a1286bc5c4f4151895c87a246fefdd3ecf27b85b83151d75c8fd6bd23&']
     }).catch(() => {});
