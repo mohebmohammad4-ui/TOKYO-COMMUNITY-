@@ -13,6 +13,24 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
+const Guild = require("./model/guildcnofig");
+
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!message.guild) return;
+
+  const data = await Guild.findOne({ guildId: message.guild.id });
+  if (!data) return;
+
+  const reply = data.autoReplies.find(r =>
+    r.trigger.toLowerCase() === message.content.toLowerCase()
+  );
+
+  if (reply) {
+    message.reply(reply.response);
+  }
+});
+
 class TitanBot extends Client {
   constructor() {
     super({
