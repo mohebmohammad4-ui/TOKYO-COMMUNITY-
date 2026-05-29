@@ -407,7 +407,15 @@ bot.on('interactionCreate', async interaction => {
             embeds: [{
                 color: 0x8B0000,
                 title: '💎 مميزات البوست',
-                description: `• رول خاص\n• لون مميز\n• صلاحيات إضافية`
+                description: `title: '💎 مميزات البوست',
+                description: `رول خاص ولون مميز
+
+5 لفلات إضافية
+
+صلاحيات إضافية
+
+و عندما وضع البوست تحصل على رتبة <@&1505179614828302446>`
+            }]`
             }]
         });
     }
