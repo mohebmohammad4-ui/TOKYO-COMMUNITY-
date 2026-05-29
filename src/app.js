@@ -75,7 +75,7 @@ class TitanBot extends Client {
       
       startupLog('Logging into Discord...');
 
-      // حدث تشغيل البوت وإرسال الـ Embed مع الأزرار الجديدة
+      // حدث تشغيل البوت وإرسال الـ Embed مع الأزرار المعدلة بالألوان المتناسقة
       this.once('ready', async () => {
         console.log('BOT READY');
 
@@ -103,20 +103,19 @@ class TitanBot extends Client {
                 {
                     type: 1,
                     components: [
-                     
-                        {
-                            type: 2,
-                            label: 'من نحن',
-                            style: 2,
-                            custom_id: 'about',
-                            emoji: { name: '🌸' }
-                        },
                         {
                             type: 2,
                             label: 'القوانين',
                             style: 2,
                             custom_id: 'rules',
                             emoji: { name: '📜' }
+                        },
+                        {
+                            type: 2,
+                            label: 'من نحن',
+                            style: 2,
+                            custom_id: 'about',
+                            emoji: { name: '🌸' }
                         }
                     ]
                 },
@@ -126,14 +125,14 @@ class TitanBot extends Client {
                         {
                             type: 2,
                             label: 'البوست',
-                            style: 4,
+                            style: 2, // تم تغيير اللون ليتناسق مع باقي الأزرار (رمادي)
                             custom_id: 'boost',
                             emoji: { name: '💎' }
                         },
                         {
                             type: 2,
                             label: 'الرتب',
-                            style: 1,
+                            style: 2, // تم تغيير اللون ليتناسق مع باقي الأزرار (رمادي)
                             custom_id: 'roles',
                             emoji: { name: '🎴' }
                         }
@@ -375,7 +374,7 @@ const setupShutdown = () => {
 
 setupShutdown();
 
-// استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل مخفية (ephemeral)
+// استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل المعدلة مخفية (ephemeral)
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
@@ -407,15 +406,7 @@ bot.on('interactionCreate', async interaction => {
             embeds: [{
                 color: 0x8B0000,
                 title: '💎 مميزات البوست',
-                description: `title: '💎 مميزات البوست',
-                description: `رول خاص ولون مميز
-
-5 لفلات إضافية
-
-صلاحيات إضافية
-
-و عندما وضع البوست تحصل على رتبة <@&1505179614828302446>`
-            }]`
+                description: `• رول خاص ولون مميز\n• 5 لفلات إضافية\n• صلاحيات إضافية\n• وعندما تضع البوست تحصل على رتبة <@&1505179614828302446>`
             }]
         });
     }
@@ -426,7 +417,7 @@ bot.on('interactionCreate', async interaction => {
             embeds: [{
                 color: 0x8B0000,
                 title: '🎏 الرتب الخاصة',
-                description: `يمكنك الحصول على رتب مميزة داخل السيرفر`
+                description: `• رول خاص ولون مميز\n• 5 لفلات إضافية\n• صلاحيات إضافية`
             }]
         });
     }
