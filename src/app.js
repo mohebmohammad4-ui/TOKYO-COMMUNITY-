@@ -153,7 +153,7 @@ class TitanBot extends Client {
       startupLog('Discord login successful');
 
       startupLog('Registering slash commands...');
-      await this.registerCommands();
+      await this.handleRegisterCommands(); // ✅ تم تعديل اسم الدالة هنا لتجنب التضارب
       startupLog('Slash commands registration complete');
       
       const databaseMode = dbStatus.isDegraded
@@ -341,7 +341,8 @@ class TitanBot extends Client {
     }
   }
 
-  async registerCommands() {
+  // ✅ تغيير اسم الدالة لتجنب أي تعارض في التسمية مع registerSlashCommands المستوردة
+  async handleRegisterCommands() {
     try {
       await registerSlashCommands(this, this.config.bot.guildId);
     } catch (error) {
@@ -375,9 +376,36 @@ const setupShutdown = () => {
 
 setupShutdown();
 
-// ✅ تم تصحيح ونقل حدث الـ Auto Reply إلى مكانه الصحيح بعد تعريف الـ bot
+
+// ✅ تم دمج حدثين الـ messageCreate في حدث واحد منظم لضمان الأداء السليم والتتابع المنطقي
 bot.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  // 1️⃣ الجزء الأول: فحص رومات الصور وحمايتها
+  const allowedChannels = [
+      '1493324135785562222',
+      '1493324237249970176'
+  ];
+
+  if (allowedChannels.includes(message.channel.id)) {
+      const hasImage = message.attachments.some(attachment =>
+          attachment.contentType?.startsWith('image/')
+      );
+
+      if (!hasImage) {
+          await message.delete().catch(() => {});
+          await message.author.send({
+              content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
+          }).catch(() => {});
+          return; // إيقاف تنفيذ الكود للرسالة الحالية تماماً لأنها حُذفت
+      }
+
+      await message.channel.send({
+          files: ['https://cdn.discordapp.com/attachments/1486414234349993985/1510019036602433546/8000_x_700.png?ex=6a1b4a51&is=6a19f8d1&hm=f093309a1286bc5c4f4151895c87a246fefdd3ecf27b85b83151d75c8fd6bd23&']
+      }).catch(() => {});
+  }
+
+  // 2️⃣ الجزء الثاني: نظام الـ Auto Reply (يعمل فقط إذا كانت الرسالة في سيرفر)
   if (!message.guild) return;
 
   try {
@@ -395,6 +423,7 @@ bot.on("messageCreate", async (message) => {
     console.error("Error in AutoReply system:", err);
   }
 });
+
 
 // استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل المعدلة مخفية (ephemeral)
 bot.on('interactionCreate', async interaction => {
@@ -443,34 +472,6 @@ bot.on('interactionCreate', async interaction => {
             }]
         });
     }
-});
-
-// الحدث الجديد: فحص الرسائل في رومات الصور المحددة ومنع النصوص والرسائل بدون صور
-bot.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
-
-    const allowedChannels = [
-        '1493324135785562222',
-        '1493324237249970176'
-    ];
-
-    if (!allowedChannels.includes(message.channel.id)) return;
-
-    const hasImage = message.attachments.some(attachment =>
-        attachment.contentType?.startsWith('image/')
-    );
-
-    if (!hasImage) {
-        await message.delete().catch(() => {});
-        await message.author.send({
-            content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
-        }).catch(() => {});
-        return;
-    }
-
-    await message.channel.send({
-        files: ['https://cdn.discordapp.com/attachments/1486414234349993985/1510019036602433546/8000_x_700.png?ex=6a1b4a51&is=6a19f8d1&hm=f093309a1286bc5c4f4151895c87a246fefdd3ecf27b85b83151d75c8fd6bd23&']
-    }).catch(() => {});
 });
 
 bot.start();
