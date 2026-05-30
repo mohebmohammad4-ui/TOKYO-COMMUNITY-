@@ -13,9 +13,6 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
-// ✅ تم تعديل الاستيراد هنا بإضافة الأقواس { } لحل مشكلة SyntaxError على Railway
-import { Guild } from './model/guildconfig.js'; 
-
 class TitanBot extends Client {
   constructor() {
     super({
