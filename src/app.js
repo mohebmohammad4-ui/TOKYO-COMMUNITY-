@@ -88,7 +88,7 @@ class TitanBot extends Client {
                 {
                   color: 0x8B0000,
                   title: '『 TOKYO COMMUNITY 』',
-                  description: `# اهلاً بك في Tokyo Community<:Rules:1510164537192484865>\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
+                  description: `# اهلاً بك في Tokyo Community🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
                   image: {
                       url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
                   },
@@ -107,7 +107,7 @@ class TitanBot extends Client {
                             label: 'من نحن',
                             style: 2,
                             custom_id: 'about',
-                            emoji: { name: '<:Rules:1510164537192484865>' }
+                            emoji: { name: '🌸' }
                         },
                        {
                             type: 2,
@@ -434,7 +434,7 @@ bot.on('interactionCreate', async interaction => {
             ephemeral: true,
             embeds: [{
                 color: 0x8B0000,
-                title: '<:Rules:1510164537192484865> من نحن',
+                title: '🌸 من نحن',
                 description: `**سيرفر طوكيو !** هو سيرفر عربي مميز يجمع الاولاد و البنات ! 🌸
 
 نوفر لك:
