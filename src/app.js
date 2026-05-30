@@ -3,7 +3,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
-import mongoose from 'mongoose'; // تم إضافة مكتبة المونجوس هنا للاتصال بالداتابيز المشتركة
+import mongoose from 'mongoose'; 
 
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
@@ -15,7 +15,6 @@ import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
 // ================== DEFINING THE MONGOOSE SCHEMA ==================
-// هذه الـ Schema مطابقة للوحة التحكم تماماً لتجنب الأخطاء البرمجية أثناء الفحص
 const GuildConfigSchema = new mongoose.Schema({
   guildId: { type: String, required: true, unique: true },
   autoReplies: [{ trigger: String, response: String }],
@@ -64,7 +63,6 @@ class TitanBot extends Client {
       this.db = dbInstance.db;
       
       // ================== CONNECTING TO MONGO ATLAS ==================
-      // تفعيل الاتصال بمونجو أطلس لكي يستمع البوت للردود المضافة من الداش بورد
       if (process.env.MONGO_URI) {
         mongoose.connect(process.env.MONGO_URI)
           .then(() => startupLog('⚙️ Tokyo Bot successfully linked to MongoAtlas Database!'))
@@ -318,188 +316,3 @@ class TitanBot extends Client {
 
   setupCronJobs() {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
-    cron.schedule('* * * * *', () => checkGiveaways(this));
-    cron.schedule('*/15 * * * *', () => this.updateAllCounters());
-  }
-
-  async updateAllCounters() {
-    if (!this.db) return;
-    for (const [guildId, guild] of this.guilds.cache) {
-      try {
-        const counters = await getServerCounters(this, guildId);
-        const validCounters = [];
-        for (const counter of counters) {
-          if (counter && counter.type && counter.channelId && counter.enabled !== false) {
-            const channel = guild.channels.cache.get(counter.channelId);
-            if (channel) {
-              validCounters.push(counter);
-              await updateCounter(this, guild, counter);
-            }
-          }
-        }
-        await saveServerCounters(this, guildId, validCounters);
-      } catch (error) {
-        logger.error(`Error updating counters:`, error);
-      }
-    }
-  }
-
-  async loadHandlers() {
-    const handlers = [
-      { path: 'events', type: 'default', required: true },
-      { path: 'interactions', type: 'default', required: true }
-    ];
-
-    for (const handler of handlers) {
-      try {
-        const module = await import(`./handlers/${handler.path}.js`);
-        const loaderFn = module.default;
-        if (typeof loaderFn === 'function') {
-          await loaderFn(this);
-          logger.info(`✅ Loaded ${handler.path}`);
-        }
-      } catch (error) {
-        if (handler.required) throw error;
-      }
-    }
-  }
-
-  async handleRegisterCommands() {
-    try {
-      await registerSlashCommands(this, this.config.bot.guildId);
-    } catch (error) {
-      logger.error('Error registering commands:', error);
-    }
-  }
-
-  async shutdown(reason = 'UNKNOWN') {
-    try {
-      cron.getTasks().forEach(task => task.stop());
-      if (this.db && this.db.db && this.db.db.pool) {
-        await this.db.db.pool.end();
-      }
-      if (this.isReady()) this.destroy();
-      process.exit(0);
-    } catch (error) {
-      process.exit(1);
-    }
-  }
-}
-
-const bot = new TitanBot();
-
-const setupShutdown = () => {
-  process.on('SIGTERM', () => bot.shutdown('SIGTERM'));
-  process.on('SIGINT', () => bot.shutdown('SIGINT'));
-  process.on('uncaughtException', (error) => bot.shutdown('UNCAUGHT_EXCEPTION'));
-  process.on('unhandledRejection', () => bot.shutdown('UNHANDLED_REJECTION'));
-};
-
-setupShutdown();
-
-// ================== MESSAGE EVENTS & AUTOREPLY SYSTEM ==================
-bot.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-
-  const allowedChannels = [
-      '1493324135785562222',
-      '1493324237249970176'
-  ];
-
-  if (allowedChannels.includes(message.channel.id)) {
-      const hasImage = message.attachments.some(attachment =>
-          attachment.contentType?.startsWith('image/')
-      );
-
-      if (!hasImage) {
-          await message.delete().catch(() => {});
-          await message.author.send({
-              content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
-          }).catch(() => {});
-          return; 
-      }
-
-      await message.channel.send({
-          files: ['https://cdn.discordapp.com/attachments/1486414234349993985/1510019036602433546/8000_x_700.png?ex=6a1b4a51&is=6a19f8d1&hm=f093309a1286bc5c4f4151895c87a246fefdd3ecf27b85b83151d75c8fd6bd23&']
-      }).catch(() => {});
-  }
-
-  if (!message.guild) return;
-
-  // التأكد من أن المونجوس متصل بنجاح قبل القراءة
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const data = await Guild.findOne({ guildId: message.guild.id });
-      if (!data || !data.autoReplies) return;
-
-      const reply = data.autoReplies.find(r =>
-        r.trigger.toLowerCase() === message.content.toLowerCase()
-      );
-
-      if (reply) {
-        await message.reply(reply.response);
-      }
-    } catch (err) {
-      console.error("Error in AutoReply system:", err);
-    }
-  }
-});
-
-bot.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
-    if (interaction.customId === 'rules') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '📜 قوانين السيرفر',
-                description: `# قوانين TOKYO COMMUNITY\n* ممنوع السب الا في حالة المزاح\n* يُمنع منعا باتاً التحرش بجميع أنواعه\n* ممنوع ذكر الشواذ\n* ممنوع التحدث في الدين\n* ممنوع الترويج بكل أشكاله\n* ممنوع نشر/ارسال اي شيء إباحي/جنسي\n* ممنوع العنصرية إلا في حالة المزاح\n* ممنوع الاهانة\n* ممنوع السبام\n* ممنوع إزعاج اي شخص بالمنشن أو غيره`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'about') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '🌸 من نحن',
-                description: `**سيرفر طوكيو !** هو سيرفر عربي مميز يجمع الاولاد و البنات ! 🌸
-
-نوفر لك:
-• بيئة آمنة ومريحة
-• أعضاء رائعين ومحترمين
-• محتوى انمي والعاب
-
-انضم لعائلتنا وكن جزءاً من المجتمع! ✨`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'boost') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '💎 مميزات البوست',
-                description: `• رول خاص ولون مميز\n• 5 لفلات إضافية\n• صلاحيات إضافية\n• وعندما تضع البوست تحصل على رتبة <@&1505179614828302446>`
-            }]
-        });
-    }
-
-    if (interaction.customId === 'roles') {
-        await interaction.reply({
-            ephemeral: true,
-            embeds: [{
-                color: 0x8B0000,
-                title: '🎏 الرتب الخاصة',
-                description: `• رول خاص ولون مميز\n• 5 لفلات إضافية\n• صلاحيات إضافية`
-            }]
-        });
-    }
-});
-
-bot.start();
-
-export default TitanBot;
