@@ -64,9 +64,10 @@ class TitanBot extends Client {
       
       // ================== CONNECTING TO MONGO ATLAS ==================
       if (process.env.MONGO_URI) {
-        mongoose.connect(process.env.MONGO_URI)
-          .then(() => startupLog('⚙️ Tokyo Bot successfully linked to MongoAtlas Database!'))
-          .catch(err => logger.error('❌ MongoAtlas connection error:', err));
+        startupLog('Connecting to MongoAtlas...');
+        // جعل البوت ينتظر الاتصال تماماً قبل إكمال الأسطر القادمة
+        await mongoose.connect(process.env.MONGO_URI);
+        startupLog('⚙️ Tokyo Bot successfully linked to MongoAtlas Database!');
       } else {
         logger.warn('⚠️ MONGO_URI missing in Bot env! Auto-replies won\'t load.');
       }
@@ -391,7 +392,6 @@ const setupShutdown = () => {
   process.on('SIGTERM', () => bot.shutdown('SIGTERM'));
   process.on('SIGINT', () => bot.shutdown('SIGINT'));
   
-  // طباعة الخطأ في الكونسول بدلاً من التسبب في إغلاق الـ Crash للبوت
   process.on('uncaughtException', (error) => {
     console.error('⚠️ Uncaught Exception detected:', error);
   });
@@ -438,8 +438,9 @@ bot.on("messageCreate", async (message) => {
       const data = await Guild.findOne({ guildId: message.guild.id });
       if (!data || !data.autoReplies) return;
 
+      // مقارنة ذكية بدون حساسية لحالة الأحرف (Capital/Small) ومسح المسافات الزائدة
       const reply = data.autoReplies.find(r =>
-        r.trigger.toLowerCase() === message.content.toLowerCase()
+        r.trigger.trim().toLowerCase() === message.content.trim().toLowerCase()
       );
 
       if (reply) {
