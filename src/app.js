@@ -14,19 +14,33 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
-// ================== DEFINING THE MONGOOSE SCHEMA ==================
+// ================== DEFINING THE MONGOOSE SCHEMA (تم التحديث) ==================
 const GuildConfigSchema = new mongoose.Schema({
   guildId: { type: String, required: true, unique: true },
   autoReplies: [{ trigger: String, response: String }],
   levelingSystem: {
     enabled: { type: Boolean, default: true },
     xpRate: { type: Number, default: 1 },
-    announcementChannel: { type: String, default: null }
+    announcementChannel: { type: String, default: null },
+    levelRoles: [{ level: Number, roleId: String }] // [ميزة مضافة]: حفظ مكافآت الرتب للمستويات
   },
   commandShortcuts: [{ commandName: String, shortcut: String }]
 });
 
+// مصفوفة إضافية لحفظ مستويات الأعضاء داخل المونجو (لحساب الـ XP العشوائي والمكافآت)
+const MemberLevelSchema = new mongoose.Schema({
+  guildId: { type: String, required: true },
+  userId: { type: String, required: true },
+  xp: { type: Number, default: 0 },
+  level: { type: Number, default: 0 }
+});
+MemberLevelSchema.index({ guildId: 1, userId: 1 }, { unique: true });
+
 const Guild = mongoose.models.GuildConfig || mongoose.model("GuildConfig", GuildConfigSchema);
+const MemberLevel = mongoose.models.MemberLevel || mongoose.model("MemberLevel", MemberLevelSchema);
+
+// مصفوفة مؤقتة في الذاكرة لحساب الـ Cooldown الخاص بالـ XP (رسالة كل دقيقة كحد أقصى لتلفيل أبطأ)
+const xpCooldowns = new Collection();
 
 class TitanBot extends Client {
   constructor() {
@@ -65,7 +79,6 @@ class TitanBot extends Client {
       // ================== CONNECTING TO MONGO ATLAS ==================
       if (process.env.MONGO_URI) {
         startupLog('Connecting to MongoAtlas...');
-        // جعل البوت ينتظر الاتصال تماماً قبل إكمال الأسطر القادمة
         await mongoose.connect(process.env.MONGO_URI);
         startupLog('⚙️ Tokyo Bot successfully linked to MongoAtlas Database!');
       } else {
@@ -104,7 +117,6 @@ class TitanBot extends Client {
         console.log('BOT READY');
 
         const channel = this.channels.cache.get('1493323975068090561');
-
         if (!channel) return console.log('❌ Channel not found');
 
         try {
@@ -158,6 +170,8 @@ class TitanBot extends Client {
                             label: 'الرتب',
                             style: 2,
                             custom_id: 'roles',
+                            style: 2,
+                            custom_id: 'roles',
                             emoji: { name: '🎴' }
                         }
                     ]
@@ -200,6 +214,8 @@ class TitanBot extends Client {
     const host = process.env.WEB_HOST || '0.0.0.0';
     const corsOrigin = this.config.api?.cors?.origin || '*';
     
+    app.use(express.json());
+
     app.use((req, res, next) => {
       const allowedOrigins = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
       const origin = req.headers.origin;
@@ -215,6 +231,33 @@ class TitanBot extends Client {
       }
       next();
     });
+
+    // ────────────────────────────────────────────────────────
+    // [إضافة مخصصة للرابط مع الداش بورد]: مسارات الـ API الجديدة لقراءة الأوامر ورتب السيرفر حركياً
+    // ────────────────────────────────────────────────────────
+    app.get('/api/bot-commands', (req, res) => {
+      const commandList = this.commands.map(cmd => ({
+        name: cmd.name,
+        description: cmd.description || 'لا يوجد وصف متاح'
+      }));
+      res.json(commandList);
+    });
+
+    app.get('/api/server-roles', async (req, res) => {
+      try {
+        const guildId = this.config.bot?.guildId || process.env.GUILD_ID;
+        const guild = this.guilds.cache.first() || this.guilds.cache.get(guildId);
+        if (!guild) return res.json([]);
+        
+        const roles = guild.roles.cache
+          .filter(r => r.name !== '@everyone' && !r.managed)
+          .map(r => ({ id: r.id, name: r.name }));
+        res.json(roles);
+      } catch (err) {
+        res.json([]);
+      }
+    });
+    // ────────────────────────────────────────────────────────
 
     const requestCounts = new Map();
     const windowMs = 60000; 
@@ -403,7 +446,7 @@ const setupShutdown = () => {
 
 setupShutdown();
 
-// ================== MESSAGE EVENTS & AUTOREPLY SYSTEM ==================
+// ================== MESSAGE EVENTS, AUTOREPLY & LEVELING SYSTEM ==================
 bot.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -432,22 +475,81 @@ bot.on("messageCreate", async (message) => {
 
   if (!message.guild) return;
 
-  // فحص حالة الاتصال بقاعدة البيانات قبل طلب البيانات
   if (mongoose.connection.readyState === 1) {
     try {
       const data = await Guild.findOne({ guildId: message.guild.id });
-      if (!data || !data.autoReplies) return;
+      
+      // 1. نظام الـ XP الاحترافي الموزون والمفصل (عشوائي + أبطأ + مكافآت رتب)
+      if (data && data.levelingSystem && data.levelingSystem.enabled) {
+        const userId = message.author.id;
+        const guildId = message.guild.id;
+        const now = Date.now();
+        const cooldownTime = 60000; // مهلة 60 ثانية لجعل التلفيل أبطأ وموزوناً ومنع السبام
+        
+        const userCooldownKey = `${guildId}-${userId}`;
+        const lastXpTime = xpCooldowns.get(userCooldownKey) || 0;
 
-      // مقارنة ذكية بدون حساسية لحالة الأحرف (Capital/Small) ومسح المسافات الزائدة
-      const reply = data.autoReplies.find(r =>
-        r.trigger.trim().toLowerCase() === message.content.trim().toLowerCase()
-      );
+        if (now - lastXpTime > cooldownTime) {
+          xpCooldowns.set(userCooldownKey, now);
 
-      if (reply) {
-        await message.reply(reply.response);
+          // حساب كمية XP عشوائية بين 15 و 25 نقطة
+          const minXp = 15;
+          const maxXp = 25;
+          const baseRandomXp = Math.floor(Math.random() * (maxXp - minXp + 1)) + minXp;
+          
+          // ضرب الـ XP العشوائي في معدل السرعة المختار من الداش بورد (xpRate)
+          const xpToAdd = Math.floor(baseRandomXp * (data.levelingSystem.xpRate || 1));
+
+          // جلب أو إنشاء سجل لفل العضو في المونجو
+          let memberData = await MemberLevel.findOne({ guildId, userId });
+          if (!memberData) {
+            memberData = new MemberLevel({ guildId, userId, xp: 0, level: 0 });
+          }
+
+          memberData.xp += xpToAdd;
+          
+          // معادلة حساب مستوى اللفل: يحتاج العضو (Level * 100 + 100) من النقاط للصعود
+          const xpNeededForNextLevel = (memberData.level * 100) + 100;
+
+          if (memberData.xp >= xpNeededForNextLevel) {
+            memberData.xp -= xpNeededForNextLevel;
+            memberData.level += 1;
+
+            // إرسال رسالة التلفيل (لو تم تحديد روم إعلانات، أو يرسل في نفس الشات الحالي)
+            const announceChannelId = data.levelingSystem.announcementChannel || message.channel.id;
+            const announceChannel = message.guild.channels.cache.get(announceChannelId);
+            if (announceChannel && announceChannel.isTextBased()) {
+              announceChannel.send(`✨ مبروك يا <@${userId}>! صعدت إلى المستوى **${memberData.level}** 🎉`).catch(() => {});
+            }
+
+            // التحقق من وجود رتبة مكافأة مخصصة لهذا المستوى المحدد في الداش بورد وإعطائها له
+            if (data.levelingSystem.levelRoles && data.levelingSystem.levelRoles.length > 0) {
+              const matchedReward = data.levelingSystem.levelRoles.find(r => r.level === memberData.level);
+              if (matchedReward) {
+                const targetRole = message.guild.roles.cache.get(matchedReward.roleId);
+                if (targetRole && message.member) {
+                  await message.member.roles.add(targetRole).catch(err => console.error("فشل إعطاء رتبة المكافأة بسبب الصلاحيات:", err));
+                }
+              }
+            }
+          }
+
+          await memberData.save();
+        }
+      }
+
+      // 2. نظام الردود التلقائية الذكي (AutoReply System)
+      if (data && data.autoReplies) {
+        const reply = data.autoReplies.find(r =>
+          r.trigger.trim().toLowerCase() === message.content.trim().toLowerCase()
+        );
+
+        if (reply) {
+          await message.reply(reply.response);
+        }
       }
     } catch (err) {
-      console.error("Error in AutoReply system:", err);
+      console.error("Error in AutoReply or Leveling system:", err);
     }
   }
 });
