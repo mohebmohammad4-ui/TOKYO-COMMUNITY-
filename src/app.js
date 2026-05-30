@@ -3,6 +3,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
+import mongoose from 'mongoose'; // تم إضافة مكتبة المونجوس هنا للاتصال بالداتابيز المشتركة
 
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
@@ -12,6 +13,21 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
+
+// ================== DEFINING THE MONGOOSE SCHEMA ==================
+// هذه الـ Schema مطابقة للوحة التحكم تماماً لتجنب الأخطاء البرمجية أثناء الفحص
+const GuildConfigSchema = new mongoose.Schema({
+  guildId: { type: String, required: true, unique: true },
+  autoReplies: [{ trigger: String, response: String }],
+  levelingSystem: {
+    enabled: { type: Boolean, default: true },
+    xpRate: { type: Number, default: 1 },
+    announcementChannel: { type: String, default: null }
+  },
+  commandShortcuts: [{ commandName: String, shortcut: String }]
+});
+
+const Guild = mongoose.models.GuildConfig || mongoose.model("GuildConfig", GuildConfigSchema);
 
 class TitanBot extends Client {
   constructor() {
@@ -46,6 +62,16 @@ class TitanBot extends Client {
       startupLog('Initializing database...');
       const dbInstance = await initializeDatabase();
       this.db = dbInstance.db;
+      
+      // ================== CONNECTING TO MONGO ATLAS ==================
+      // تفعيل الاتصال بمونجو أطلس لكي يستمع البوت للردود المضافة من الداش بورد
+      if (process.env.MONGO_URI) {
+        mongoose.connect(process.env.MONGO_URI)
+          .then(() => startupLog('⚙️ Tokyo Bot successfully linked to MongoAtlas Database!'))
+          .catch(err => logger.error('❌ MongoAtlas connection error:', err));
+      } else {
+        logger.warn('⚠️ MONGO_URI missing in Bot env! Auto-replies won\'t load.');
+      }
       
       const dbStatus = this.db.getStatus();
       if (dbStatus.isDegraded) {
@@ -371,6 +397,7 @@ const setupShutdown = () => {
 
 setupShutdown();
 
+// ================== MESSAGE EVENTS & AUTOREPLY SYSTEM ==================
 bot.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -399,19 +426,22 @@ bot.on("messageCreate", async (message) => {
 
   if (!message.guild) return;
 
-  try {
-    const data = await Guild.findOne({ guildId: message.guild.id });
-    if (!data || !data.autoReplies) return;
+  // التأكد من أن المونجوس متصل بنجاح قبل القراءة
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const data = await Guild.findOne({ guildId: message.guild.id });
+      if (!data || !data.autoReplies) return;
 
-    const reply = data.autoReplies.find(r =>
-      r.trigger.toLowerCase() === message.content.toLowerCase()
-    );
+      const reply = data.autoReplies.find(r =>
+        r.trigger.toLowerCase() === message.content.toLowerCase()
+      );
 
-    if (reply) {
-      await message.reply(reply.response);
+      if (reply) {
+        await message.reply(reply.response);
+      }
+    } catch (err) {
+      console.error("Error in AutoReply system:", err);
     }
-  } catch (err) {
-    console.error("Error in AutoReply system:", err);
   }
 });
 
