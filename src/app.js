@@ -13,8 +13,8 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
-// ✅ الآن البوت يستدعي الملف من مجلده الخاص بعد أن تقوم بنسخه إليه
-import Guild from './model/guildconfig.js'; 
+// ✅ تم تعديل الاستيراد هنا بإضافة الأقواس { } لحل مشكلة SyntaxError على Railway
+import { Guild } from './model/guildconfig.js'; 
 
 class TitanBot extends Client {
   constructor() {
@@ -89,16 +89,16 @@ class TitanBot extends Client {
           await channel.send({
             embeds: [
                 {
-                    color: 0x8B0000,
-                    title: '『 TOKYO COMMUNITY 』',
-                    description: `# اهلاً بك في Tokyo Community 🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
-                    image: {
-                        url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
-                    },
-                    footer: {
-                        text: 'Tokyo Community'
-                    },
-                    timestamp: new Date()
+                  color: 0x8B0000,
+                  title: '『 TOKYO COMMUNITY 』',
+                  description: `# اهلاً بك في Tokyo Community 🌸\n\nاضغط على الأزرار بالأسفل لمعرفة معلومات السيرفر.`,
+                  image: {
+                      url: 'https://cdn.discordapp.com/attachments/1493320568660033590/1507819135646830672/tokyo.png?ex=6a173dff&is=6a15ec7f&hm=65322f65e3392fbd444f62bc2a5597ff9025a9e039af366cd2570de54609892f&'
+                  },
+                  footer: {
+                      text: 'Tokyo Community'
+                  },
+                  timestamp: new Date()
                 }
             ],
             components: [
@@ -153,7 +153,7 @@ class TitanBot extends Client {
       startupLog('Discord login successful');
 
       startupLog('Registering slash commands...');
-      await this.handleRegisterCommands(); // ✅ تم تعديل اسم الدالة لتجنب أي تعارض في الأسماء
+      await this.handleRegisterCommands(); 
       startupLog('Slash commands registration complete');
       
       const databaseMode = dbStatus.isDegraded
@@ -341,7 +341,6 @@ class TitanBot extends Client {
     }
   }
 
-  // ✅ تم تغيير الاسم داخلياً ليعمل بالتوافق مع دالة التسجيل المستوردة
   async handleRegisterCommands() {
     try {
       await registerSlashCommands(this, this.config.bot.guildId);
@@ -364,7 +363,6 @@ class TitanBot extends Client {
   }
 }
 
-// تشغيل البوت وتفعيل استقبال ضغطات الأزرار
 const bot = new TitanBot();
 
 const setupShutdown = () => {
@@ -376,11 +374,9 @@ const setupShutdown = () => {
 
 setupShutdown();
 
-// ✅ تم دمج الأحداث لتوفير الموارد وحل مشكلة الـ Auto Reply والـ Photo Rooms
 bot.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // 1️⃣ حماية رومات الصور
   const allowedChannels = [
       '1493324135785562222',
       '1493324237249970176'
@@ -404,7 +400,6 @@ bot.on("messageCreate", async (message) => {
       }).catch(() => {});
   }
 
-  // 2️⃣ نظام الـ Auto Reply القادم من قاعدة البيانات المشتركة
   if (!message.guild) return;
 
   try {
@@ -423,7 +418,6 @@ bot.on("messageCreate", async (message) => {
   }
 });
 
-// استقبال التفاعل مع الأزرار
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
