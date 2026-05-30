@@ -75,11 +75,11 @@ class TitanBot extends Client {
       if (dbStatus.isDegraded) {
         logger.warn('');
         logger.warn('╔═══════════════════════════════════════════════════════╗');
-        logger.warn('║ ⚠️  DATABASE RUNNING IN DEGRADED MODE                  ║');
+        logger.warn('║ ⚠️  DATABASE RUNNING IN DEGRADED MODE                 ║');
         logger.warn('║                                                       ║');
         logger.warn('║ Connection: In-Memory Storage (PostgreSQL unavailable)║');
         logger.warn('║ Data Persistence: DISABLED - data lost on restart     ║');
-        logger.warn('║ Action Required: Fix PostgreSQL and restart bot        ║');
+        logger.warn('║ Action Required: Fix PostgreSQL and restart bot       ║');
         logger.warn('╚═══════════════════════════════════════════════════════╝');
         logger.warn('');
       } else {
@@ -316,3 +316,18 @@ class TitanBot extends Client {
 
   setupCronJobs() {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
+    checkGiveaways(this);
+  }
+
+  async loadHandlers() {
+    // قم بملء هذا الجزء إذا كان لديك هاندلرز خاصة
+  }
+
+  async handleRegisterCommands() {
+    await registerSlashCommands(this);
+  }
+}
+
+// تشغيل البوت
+const bot = new TitanBot();
+bot.start();
