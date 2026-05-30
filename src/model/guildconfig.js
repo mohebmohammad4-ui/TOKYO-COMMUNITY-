@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const guildSchema = new mongoose.Schema({
   guildId: String,
@@ -20,4 +20,6 @@ const guildSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("Guild", guildSchema);
+// ✅ التصدير الافتراضي الحديث المتوافق مع ES Modules
+const Guild = mongoose.model("Guild", guildSchema);
+export default Guild;
