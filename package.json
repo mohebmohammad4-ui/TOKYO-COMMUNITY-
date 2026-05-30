@@ -15,7 +15,7 @@
     "backup:drill": "node scripts/restore-drill.js"
   },
   "dependencies": {
-    "mongoose": "^8.0.0"
+    "mongoose": "^8.0.0",
     "@discordjs/rest": "^2.6.1",
     "axios": "^1.13.2",
     "discord.js": "^14.15.3",
