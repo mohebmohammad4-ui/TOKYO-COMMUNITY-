@@ -13,7 +13,7 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 
-// ✅ تم تعديل الاستدعاء هنا من require إلى import ليتوافق مع نظام المشروع
+// ✅ الآن البوت يستدعي الملف من مجلده الخاص بعد أن تقوم بنسخه إليه
 import Guild from './model/guildconfig.js'; 
 
 class TitanBot extends Client {
@@ -153,7 +153,7 @@ class TitanBot extends Client {
       startupLog('Discord login successful');
 
       startupLog('Registering slash commands...');
-      await this.handleRegisterCommands(); // ✅ تم تعديل اسم الدالة هنا لتجنب التضارب
+      await this.handleRegisterCommands(); // ✅ تم تعديل اسم الدالة لتجنب أي تعارض في الأسماء
       startupLog('Slash commands registration complete');
       
       const databaseMode = dbStatus.isDegraded
@@ -341,7 +341,7 @@ class TitanBot extends Client {
     }
   }
 
-  // ✅ تغيير اسم الدالة لتجنب أي تعارض في التسمية مع registerSlashCommands المستوردة
+  // ✅ تم تغيير الاسم داخلياً ليعمل بالتوافق مع دالة التسجيل المستوردة
   async handleRegisterCommands() {
     try {
       await registerSlashCommands(this, this.config.bot.guildId);
@@ -376,12 +376,11 @@ const setupShutdown = () => {
 
 setupShutdown();
 
-
-// ✅ تم دمج حدثين الـ messageCreate في حدث واحد منظم لضمان الأداء السليم والتتابع المنطقي
+// ✅ تم دمج الأحداث لتوفير الموارد وحل مشكلة الـ Auto Reply والـ Photo Rooms
 bot.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // 1️⃣ الجزء الأول: فحص رومات الصور وحمايتها
+  // 1️⃣ حماية رومات الصور
   const allowedChannels = [
       '1493324135785562222',
       '1493324237249970176'
@@ -397,7 +396,7 @@ bot.on("messageCreate", async (message) => {
           await message.author.send({
               content: '❌ لا يمكن سوى ارسال صور فقط في هذا الشات.'
           }).catch(() => {});
-          return; // إيقاف تنفيذ الكود للرسالة الحالية تماماً لأنها حُذفت
+          return; 
       }
 
       await message.channel.send({
@@ -405,7 +404,7 @@ bot.on("messageCreate", async (message) => {
       }).catch(() => {});
   }
 
-  // 2️⃣ الجزء الثاني: نظام الـ Auto Reply (يعمل فقط إذا كانت الرسالة في سيرفر)
+  // 2️⃣ نظام الـ Auto Reply القادم من قاعدة البيانات المشتركة
   if (!message.guild) return;
 
   try {
@@ -424,8 +423,7 @@ bot.on("messageCreate", async (message) => {
   }
 });
 
-
-// استقبال التفاعل مع الأزرار وإرسال القوانين وباقي الرسايل المعدلة مخفية (ephemeral)
+// استقبال التفاعل مع الأزرار
 bot.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
