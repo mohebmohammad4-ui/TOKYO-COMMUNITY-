@@ -337,7 +337,7 @@ bot.on("messageCreate", async (message) => {
               }]
           });
       }
-    } catch (err) { console.error(err); }});
+    } catch (err) { console.error(err); });
 
 bot.start();
 export default TitanBot;
