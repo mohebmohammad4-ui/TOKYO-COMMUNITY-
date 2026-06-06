@@ -288,8 +288,7 @@ bot.on("messageCreate", async (message) => {
 });
 
 // ================== EMBED BUTTONS INTERACTION (التحكم بنصوص الأزرار من قاعدة البيانات) ==================
-bot.on('interactionCreate', async interaction => {
-    if (!interaction.isButton() || !interaction.guild) return;
+
 
     try {
       const data = await Guild.findOne({ guildId: interaction.guild.id });
